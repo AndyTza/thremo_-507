@@ -100,7 +100,7 @@ def check_particle_particle_collision(particle_1, particle_2, boundary=100):
         return False
 
 
-def spawn_particles(N0, vmin=-100, vmax=100, rad=0.011*height, m0=10, seed=42):
+def spawn_particles(N0, v0=100, rad=0.011*height, m0=10):
     """ This function will spawn N particles in WIN box. It will initialize the position, velocity, mass and size of each particle.
 
     Args:
@@ -117,10 +117,11 @@ def spawn_particles(N0, vmin=-100, vmax=100, rad=0.011*height, m0=10, seed=42):
             Y.append(j)
     pos_rand_x, pos_rand_y = np.array(X), np.array(Y)
     pos_rand_x, pos_rand_y = pos_rand_x + offset, pos_rand_y + offset
-    #pos_rand_x, pos_rand_y = np.random.randint(5, width-5, N0), np.random.randint(5, width-5, N0)
 
-    np.random.seed(seed)
-    all_particles = [Particle(i, j, 6*random.choice((-1, 1)), 6*random.choice((-1, 1)), rad, m0) for i, j in zip(pos_rand_x, pos_rand_y)]
+    all_particles = [Particle(i, j, v0*random.choice((-1, 1)), v0*random.choice((-1, 1)), rad, m0) for i, j in zip(pos_rand_x, pos_rand_y)]
+
+    #for i in range(50):
+        #all_particles[i].mass = 10*all_particles[i].mass
 
     return all_particles
 
@@ -132,7 +133,7 @@ def simulate(N=10, stop_sim=50, **kwargs):
     # Initialize particles
     particles_N = spawn_particles(N0=N, **kwargs)
     delta_t = 0 
-
+    sigma_step = []
     while run:
         clock.tick(FPS) # keep to the limited FPS
         draw_window_bkg() # draw window background -- need to refresh each 
@@ -158,41 +159,41 @@ def simulate(N=10, stop_sim=50, **kwargs):
                 ppp.pos_y = ppp.pos_y + ppp.vy*(1/FPS)
 
 
-        # handle particle-particle collisions
         _off = 0
         for i in range(0, len(particles_N)-1):
             jj = np.arange(_off+1, len(particles_N))
             for j in jj:
-
-                _cp = check_particle_particle_collision(particles_N[i], particles_N[j], boundary=3) # check if collision has occured
                 
-                # If particle collision has occured... perform a velocity change
+                # Check for collisions
+                _cp = check_particle_particle_collision(particles_N[i], particles_N[j], boundary=3) #
+
                 pt_1 = particles_N[j] # i-th particle
                 pt_2 = particles_N[i] # j-th particle
 
-                m1m2 = pt_1.mass + pt_2.mass # mass combined term
-                
-                # x-hat component
-                x1x2 = pt_1.pos_x - pt_2.pos_x
-                x2x1 = pt_2.pos_x - pt_1.pos_x
-                v1v2 = pt_1.vx - pt_2.vx
-                v2v1 = pt_2.vx - pt_1.vx
+                # positional vector
+                vec_1 = np.array([pt_1.pos_x, pt_1.pos_y])
+                vec_2 = np.array([pt_2.pos_x, pt_2.pos_y])
 
-                y1y2 = pt_1.pos_y - pt_2.pos_y
-                y2y1 = pt_2.pos_y - pt_1.pos_y
-                v1v2y = pt_1.vy - pt_2.vy
-                v2v1y = pt_2.vy - pt_1.vy
+                # velocity vector
+                vel_1 = np.array([pt_1.vx, pt_1.vy])
+                vel_2 = np.array([pt_2.vx, pt_2.vy])
 
-                if _cp==True and x1x2!=0 and x2x1!=0 and y1y2!=0 and y2y1!=0:
+                m1, m2 = pt_1.mass, pt_2.mass
+                M = m1 + m2
 
-                    ## THE ISSUE IS HERE!!!
+                # normalized distance!
+                cart_dist = ((vec_1 - vec_2)[0]**2 + (vec_1 - vec_2)[1]**2)
 
+                if _cp==True and np.dot(vec_1-vec_2, vel_1-vel_2)<0:
 
-                    pt_1.vx = pt_1.vx - ((2*pt_2.mass)/(m1m2)) * ((np.inner(v1v2,x1x2))/np.linalg.norm(x1x2)**2) * (x1x2)
-                    pt_2.vx = pt_2.vx - ((2*pt_1.mass)/(m1m2)) * ((np.inner(v2v1,x2x1))/np.linalg.norm(x2x1)**2) * (x2x1)
+                    # Collision updated velocity!
+                    vel1_new = vel_1 - (2*m2)/M * np.dot(vel_1 - vel_2, vec_1 - vec_2) * (vec_1 - vec_2)/cart_dist
+                    vel2_new = vel_2 - (2*m1)/M* np.dot(vel_2 - vel_1, vec_2 - vec_1) * (vec_2 - vec_1)/cart_dist
 
-                    pt_1.vy = pt_1.vy - ((2*pt_2.mass)/(m1m2)) * ((np.inner(v1v2y,y1y2))/np.linalg.norm(y1y2)**2) * (y1y2)
-                    pt_2.vy = pt_2.vy - ((2*pt_1.mass)/(m1m2)) * ((np.inner(v2v1y,y2y1))/np.linalg.norm(y2y1)**2) * (y2y1)
+                    pt_1.vx = vel1_new[0]
+                    pt_1.vy = vel1_new[1]
+                    pt_2.vx = vel2_new[0]
+                    pt_2.vy = vel2_new[1]
 
                     # Now apply equations of motion to the actual positions (i.e make them move!)
                     pt_1.pos_x = pt_1.pos_x + pt_1.vx*(1/FPS)
@@ -204,7 +205,6 @@ def simulate(N=10, stop_sim=50, **kwargs):
                 else:
                     continue
             _off += 1
-
         k = 1
         for particle in particles_N:
             print (f"{k}-ID: x: {particle.pos_x}, y:{particle.pos_y}, Vx:{particle.vx}, Vy:{particle.vy}")
@@ -228,54 +228,25 @@ def simulate(N=10, stop_sim=50, **kwargs):
 
         #print (f"Time interval score: {delta_t} seconds")
         delta_t += 1 
+
+        v_dist = []
+        for particle in particles_N:
+            v_dist.append(np.sqrt(particle.vx**2 + particle.vy**2))
+        v_dist = np.array(v_dist)
+        Sig = np.var(v_dist)
+        sigma_step.append(Sig)
+
         if delta_t>stop_sim:
             run = False
-            return particles_N
+            sigma_step = np.array(sigma_step)
+            return sigma_step
 
 
 # Run the simulation here!
-if __name__=="__main__":
-    ss_1 = simulate(N=100 ,stop_sim=5000, vmin=-150, vmax=150)
-    plt.figure(figsize=(5,5))
-    for p in ss_1:
-        plt.scatter(p.pos_x, p.pos_y, s=50, edgecolor='k')
-        plt.quiver(p.pos_x, p.pos_y, p.vx, p.vy)
-    for _ in range(2):
-        plt.axvline(0, lw=5, color='tomato')
-        plt.axhline(0, lw=5, color='tomato')
-        plt.axvline(1000, lw=5, color='tomato')
-        plt.axhline(1000, lw=5, color='tomato')
-    plt.xlabel("X-pos", fontsize=18)
-    plt.ylabel("Y-pos", fontsize=18)
-    plt.xticks(fontsize=15)
-    plt.yticks(fontsize=15)
-    plt.xlim(0, 1000)
-    plt.ylim(0, 1000)
-    plt.title("$\delta$t = 10$^{4}$ sec", fontsize=18)
-    plt.savefig('figs/pos_final.jpg', format='jpg', dpi=400, bbox_inches='tight')
-    plt.show()
-
-    np.random.seed(42)
-    #v0x, v0y = np.random.randint(-150, 150, 100), np.random.randint(-150, 150, 100)
-    #V0 = np.sqrt(v0x**2 + v0y**2)
-    v = []
-    for p in ss_1:
-        v.append(np.sqrt(p.vx**2 + p.vy**2))
-    v = np.array(v)
-    
-    plt.figure(figsize=(10,5))
-    _ = plt.hist(v, alpha=0.5, color='tomato', edgecolor='red', lw=3, density=False, histtype='stepfilled', label='Final')
-   #_ = plt.hist(V0, alpha=0.5, color='c', edgecolor='k', bins=np.arange(0, 400, step=25), ls='--', density=True, histtype='stepfilled', label='Inidial')
-    plt.ylabel("N", fontsize=20)
-    plt.xlabel("$v$ [px/s]", fontsize=20)
-    plt.xticks(fontsize=18)
-    plt.yticks(fontsize=18)
-    plt.xticks(fontsize=18)
-    plt.legend(fontsize=18)
-
-    plt.title("$\delta$t = 10$^{4}$ sec", fontsize=18)
-    plt.savefig('figs/dist_final.jpg', format='jpg', dpi=400, bbox_inches='tight')
-    plt.show()
-    
-    
-
+for i in np.arange(5, 300, step=50):
+    if __name__=="__main__":
+        if i==5:
+            sim1 = simulate(N=i ,stop_sim=15000, v0=200, m0=1, rad=10)
+            #np.save(f"sim_relax/relax_nden{i}", sim1)
+            break
+            
