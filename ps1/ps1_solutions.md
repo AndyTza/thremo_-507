@@ -493,6 +493,3 @@ In this last question, I compare the relaxation timescale of the derived equatio
 |:--:| 
 | Figure 6. -- Expected timescale relaxation time (derived from the relaxation time above) versus our invented relaxation time ADF metric as a function of particle cross section.|
 
-## Acknowledgements
-Many concepts and ideas for the workflow of this project were heavily inspired by conversations I had with Tom Wagg, Bonni Choi, Sam Garza, Gabriella Suissa, David Wang, and Megan Gialluca. 
- 
