@@ -226,5 +226,5 @@ def simulate(N=10, stop_sim=50, **kwargs):
             run = False
 
 if __name__=="__main__":
-    simulate(N=i ,stop_sim=15000, v0=200, m0=1, rad=10)
+    simulate(N=100 ,stop_sim=15000, v0=200, m0=1, rad=10)
         
