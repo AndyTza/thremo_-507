@@ -17,7 +17,7 @@ width, height = 1000, 1000
 WIN = pygame.display.set_mode((width, height)) 
 CLR = (255, 255, 255)
 PRT_CLR = (0, 1, 0)
-FPS = 60
+FPS = 30
 
 
 class Particle():
@@ -219,34 +219,12 @@ def simulate(N=10, stop_sim=50, **kwargs):
         # Update display!
         update_display()
 
-        # update everything
-        #for particle in particles_N:
-            #particle.pos_x = particle.pos_x
-            #particle.pos_y = particle.pos_y
-            #particle.vx = particle.vx
-            #particle.vy = particle.vy
-
-        #print (f"Time interval score: {delta_t} seconds")
+        print (f"Time interval score: {delta_t} seconds")
         delta_t += 1 
-
-        v_dist = []
-        for particle in particles_N:
-            v_dist.append(np.sqrt(particle.vx**2 + particle.vy**2))
-        v_dist = np.array(v_dist)
-        Sig = np.var(v_dist)
-        sigma_step.append(Sig)
 
         if delta_t>stop_sim:
             run = False
-            sigma_step = np.array(sigma_step)
-            return sigma_step
 
-
-# Run the simulation here!
-for i in np.arange(5, 300, step=50):
-    if __name__=="__main__":
-        if i==5:
-            sim1 = simulate(N=i ,stop_sim=15000, v0=200, m0=1, rad=10)
-            #np.save(f"sim_relax/relax_nden{i}", sim1)
-            break
-            
+if __name__=="__main__":
+    simulate(N=i ,stop_sim=15000, v0=200, m0=1, rad=10)
+        
